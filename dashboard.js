@@ -23,6 +23,8 @@ let hapusId = null;
 const produkModal = new bootstrap.Modal(
   document.getElementById('produkModal')
 );
+const fileInput = document.getElementById('gambarFile');
+
 
 // ================= RENDER TABLE =================
 async function renderTable() {
@@ -152,6 +154,20 @@ btnKonfirmasiHapus.addEventListener('click', async () => {
   hapusId = null;
   renderTable();
 });
+
+// ================= VALIDASI FILE GAMBAR =================
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const allowedTypes = ['image/jpeg', 'image/png'];
+
+  if (!allowedTypes.includes(file.type)) {
+    alert('Hanya file JPG dan PNG yang diperbolehkan!');
+    fileInput.value = '';
+  }
+});
+
 
 // ================= LOAD AWAL =================
 renderTable();
