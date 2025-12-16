@@ -12,19 +12,15 @@ const totalFavoritEl = document.getElementById('totalFavorit');
 const produkForm = document.getElementById('produkForm');
 const btnTambah = document.getElementById('btnTambah');
 const modalTitle = document.getElementById('modalTitle');
-const hapusModal = new bootstrap.Modal(
-  document.getElementById('hapusModal')
-);
+const favoritContainer = document.getElementById('favoritContainer');
+const fileInput = document.getElementById('gambarFile');
+const hapusModal = new bootstrap.Modal(document.getElementById('hapusModal'));
 const hapusNama = document.getElementById('hapusNama');
 const btnKonfirmasiHapus = document.getElementById('btnKonfirmasiHapus');
-
 let hapusId = null;
-
 const produkModal = new bootstrap.Modal(
   document.getElementById('produkModal')
 );
-const fileInput = document.getElementById('gambarFile');
-
 
 // ================= RENDER TABLE =================
 async function renderTable() {
@@ -53,6 +49,47 @@ async function renderTable() {
       </td>
     `;
     produkTable.appendChild(tr);
+  });
+}
+
+// ================= RENDER FAVORIT (INDEX) =================
+async function renderFavorit() {
+  if (!favoritContainer) return; // supaya tidak error di halaman lain
+
+  const { data, error } = await supabase
+    .from('produk')
+    .select('*')
+    .eq('favorit', true);
+
+  if (error) return console.error(error);
+
+  favoritContainer.innerHTML = '';
+
+  if (data.length === 0) {
+    favoritContainer.innerHTML =
+      '<p class="text-muted">Belum ada produk favorit</p>';
+    return;
+  }
+
+  data.forEach(p => {
+    const col = document.createElement('div');
+    col.className = 'col-md-3 mb-3';
+
+    col.innerHTML = `
+      <div class="card h-100 shadow-sm">
+        <img src="${p.gambar ?? ''}" class="card-img-top"
+             style="height:150px; object-fit:cover">
+        <div class="card-body text-center">
+          <h6 class="card-title">${p.nama}</h6>
+          <small class="text-muted">${p.kategori}</small>
+          <div class="fw-bold mt-2">
+            Rp ${p.harga.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    `;
+
+    favoritContainer.appendChild(col);
   });
 }
 
@@ -171,3 +208,4 @@ fileInput.addEventListener('change', () => {
 
 // ================= LOAD AWAL =================
 renderTable();
+renderFavorit();
