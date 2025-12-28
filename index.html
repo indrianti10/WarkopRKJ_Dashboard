@@ -107,6 +107,7 @@
           </div>
           <div class="modal-body">
             <form id="produkForm">
+              <input type="hidden" id="gambarLama">
               <input type="hidden" id="produkId">
               <div class="mb-3">
                 <label>Nama</label>
@@ -129,7 +130,7 @@
               </div>
               <div class="mb-3">
                 <label>Harga</label>
-                <input type="text" class="form-control" id="harga" placeholder="25.000" required>
+                <input type="text" class="form-control" id="harga" placeholder="25.000" inputmode="numeric" autocomplete="off">
               </div>
               <div class="mb-3">
                 <label>Deskripsi</label>
@@ -138,7 +139,19 @@
               <div class="mb-3">
                 <label>Gambar</label>
                 <input type="file" class="form-control" id="gambarFile" accept=".jpg,.jpeg,.png">
+
+                <!-- INFO GAMBAR LAMA -->
+                <div id="gambarInfo" class="mt-2" style="display:none">
+                  <small class="text-muted">
+                    Gambar saat ini:
+                    <span id="namaFileGambar"></span>
+                  </small>
+                  <div class="mt-1">
+                    <img id="previewGambar" width="100" class="rounded border">
+                  </div>
+                </div>
               </div>
+
               <div class="form-check mb-3">
                 <input type="checkbox" class="form-check-input" id="favorit">
                 <label class="form-check-label">Favorit</label>

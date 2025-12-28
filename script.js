@@ -39,28 +39,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-
-  /* ==============================
-     FORMAT HARGA (TITIK OTOMATIS)
-  ============================== */
-  const hargaInput = document.getElementById('harga');
-
-  hargaInput.addEventListener('input', function () {
-    let angka = this.value.replace(/\D/g, '');
-    this.value = formatRibuan(angka);
-  });
-
-  function formatRibuan(angka) {
-    if (!angka) return '';
-    return angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  }
-
-  // Cegah huruf
-  hargaInput.addEventListener('keypress', function (e) {
-    if (!/[0-9]/.test(e.key)) e.preventDefault();
-  });
-
-
   /* ==============================
      SUBMIT FORM (BERSIHKAN HARGA)
   ============================== */
