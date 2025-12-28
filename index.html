@@ -4,41 +4,79 @@
   <meta charset="UTF-8">
   <title>Dashboard Warkop RKJ</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<!-- MOBILE HEADER -->
+<div id="mobileHeader" class="d-lg-none">
+  <img src="logo.png" alt="Logo">
+  <span class="fw-bold fs-5">Dashboard</span>
+</div>
+
 <div class="d-flex">
   <!-- SIDEBAR -->
-  <aside class="p-3 bg-dark text-white vh-100" style="width: 220px;">
-    <img src="logo.png" alt="Warkop Rkj" >
+  <aside class="sidebar d-none d-lg-flex flex-column p-3 vh-100">
+    <img src="logo.png" alt="Warkop RKJ" class="img-fluid mb-3">
     <hr class="border-secondary">
-    <ul class="nav flex-column mt-3 pt-1">
-        <li class="nav-item">
-            <a class="nav-link sidebar-link active" href="index.html">Dashboard</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link sidebar-link" href="makanan.html">Makanan</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link sidebar-link" href="minuman.html">Minuman</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link sidebar-link" href="cemilan.html">Cemilan</a>
-        </li>
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link text-white fw-semibold fs-5" href="index.html">Dashboard</a>
+      </li>
     </ul>
   </aside>
 
   <!-- MAIN -->
   <main class="flex-grow-1 p-4">
-    <h3>Dashboard</h3>
+    <h3 class="d-none d-lg-block">Dashboard</h3>
+
     <div class="row mb-4">
-      <div class="col-md-4"><div class="card p-3"><h6>Total Produk</h6><h3 id="totalProduk">0</h3></div></div>
-      <div class="col-md-4"><div class="card p-3"><h6>Favorit</h6><h3 id="totalFavorit">0</h3></div></div>
+      <div class="col-md-2 col-6">
+        <div class="card stat-card">
+          <h6>Makanan</h6>
+          <h3 id="totalMakanan">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2 col-6">
+        <div class="card stat-card">
+          <h6>Minuman</h6>
+          <h3 id="totalMinuman">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2 col-6">
+        <div class="card stat-card">
+          <h6>Cemilan</h6>
+          <h3 id="totalCemilan">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2 col-6">
+        <div class="card stat-card">
+          <h6>Favorit</h6>
+          <h3 id="totalFavorit">0</h3>
+        </div>
+      </div>
+      <div class="col-md-2 col-6">
+        <div class="card stat-card">
+          <h6>Total Produk</h6>
+          <h3 id="totalProduk">0</h3>
+        </div>
+      </div>
     </div>
 
     <div class="card">
-      <div class="card-header d-flex justify-content-center">
-        <h5>Daftar Produk Best Seller</h5>
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+        <h5 class="mb-0">Daftar Produk</h5>
+        <div class="d-flex gap-2 align-items-center mt-2 mt-lg-0">
+          <label for="filterKategori" class="mb-0">Kategori:</label>
+          <select id="filterKategori" class="form-select form-select-sm">
+            <option value="">Semua</option>
+            <option value="makanan">Makanan</option>
+            <option value="minuman">Minuman</option>
+            <option value="cemilan">Cemilan</option>
+          </select>
+
+          <button class="btn btn-primary btn-sm" id="btnTambah" style="font-size: 0.9rem; min-width: 140px;"> + Tambah Produk</button>
+        </div>
       </div>
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -48,16 +86,93 @@
               <th>Nama</th>
               <th>Kategori</th>
               <th>Harga</th>
+              <th>Deskripsi</th>
               <th>Favorit</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody id="produkTable"></tbody>
         </table>
       </div>
+      <div id="pagination" class="mt-2 d-flex justify-content-center gap-2"></div>
     </div>
+
+    <!-- MODAL TAMBAH / EDIT -->
+    <div class="modal fade" id="produkModal" tabindex="-1">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Tambah Produk</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <form id="produkForm">
+              <input type="hidden" id="produkId">
+              <div class="mb-3">
+                <label>Nama</label>
+                <input type="text" class="form-control" id="nama" required>
+              </div>
+              <div class="mb-3">
+                <label>Kategori</label>
+                <select id="kategoriUtama" class="form-select" required>
+                  <option value="">-- Pilih Kategori --</option>
+                  <option value="makanan">Makanan</option>
+                  <option value="minuman">Minuman</option>
+                  <option value="cemilan">Cemilan</option>
+                </select>
+              </div>
+              <div class="mb-3" id="subKategoriWrapper" style="display:none;">
+                <label>Sub Kategori</label>
+                <select id="sub_kategori" class="form-select">
+                  <option value="">-- Pilih Sub Kategori --</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label>Harga</label>
+                <input type="text" class="form-control" id="harga" placeholder="25.000" required>
+              </div>
+              <div class="mb-3">
+                <label>Deskripsi</label>
+                <textarea class="form-control" id="deskripsi" rows="3"></textarea>
+              </div>
+              <div class="mb-3">
+                <label>Gambar</label>
+                <input type="file" class="form-control" id="gambarFile" accept=".jpg,.jpeg,.png">
+              </div>
+              <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="favorit">
+                <label class="form-check-label">Favorit</label>
+              </div>
+              <button class="btn btn-primary" type="submit">Simpan</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL HAPUS -->
+    <div class="modal fade" id="hapusModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title">Hapus Produk</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>Yakin ingin menghapus produk ini?</p>
+            <strong id="hapusNama"></strong>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button class="btn btn-danger" id="btnKonfirmasiHapus">Hapus</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
-
+<script src="script.js"></script>
 <script type="module" src="dashboard.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

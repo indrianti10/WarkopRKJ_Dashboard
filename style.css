@@ -1,18 +1,86 @@
-.sidebar-link {
+.sidebar {
+  width: 220px;
+  background-color: #343a40;
   color: #fff;
-  padding: 10px 15px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  height: 100vh;       /* penuh viewport */
+  position: fixed;     /* tetap di kiri saat scroll */
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;    /* scroll sendiri jika isi terlalu banyak */
 }
 
-.sidebar-link:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: #fff;
+main {
+  margin-left: 220px;  /* ruang untuk sidebar */
 }
 
-/* ACTIVE STATE */
-.sidebar-link.active {
-  background-color: #b58954; /* warna kopi */
-  color: #fff;
-  font-weight: 600;
+@media(max-width: 991px){
+  .sidebar { display: none; }
+  main { margin-left: 0; }
 }
+
+
+/* Sidebar desktop */
+    aside {
+      width: 220px;
+      background-color: #212529;
+      color: #fff;
+    }
+    aside img {
+      max-width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    /* Mobile header */
+    #mobileHeader {
+      display: none;
+      background-color: #212529;
+      color: white;
+      padding: 0.5rem 1rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #mobileHeader img {
+      width: 40px;
+      height: auto;
+    }
+
+    /* Statistik cards */
+    .stat-card {
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 1rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Responsive layout */
+    @media (max-width: 768px) {
+      aside {
+        display: none;
+      }
+      #mobileHeader {
+        display: flex;
+      }
+      .row.mb-4 > .col-md-2 {
+        flex: 1 1 48%;
+        min-width: 120px;
+      }
+      .card-header.d-flex {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .card-header.d-flex label {
+      white-space: nowrap;
+    }
+
+    #btnTambah {
+      flex-shrink: 0;
+    }

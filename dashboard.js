@@ -1,211 +1,185 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+const supabase = createClient(
+  'https://ynmecpnwuylphtoqeqko.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlubWVjcG53dXlscGh0b3FlcWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MTE0OTQsImV4cCI6MjA4MjM4NzQ5NH0.GEQt2gJGi1o7Dr7Se8jKfPvBMjAkazJcgTum3ZLMQNU'
+);
 
-// ================= SUPABASE =================
-const supabaseUrl = 'https://srrtqiqbgchszgqavzuq.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNycnRxaXFiZ2Noc3pncWF2enVxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3OTA5NjYsImV4cCI6MjA4MTM2Njk2Nn0.1ToPgwgn1o2cAoNqFE1F7WtKQs32dat1QU64pD8UyF0';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// ================= ELEMENT =================
+/* ELEMENT */
 const produkTable = document.getElementById('produkTable');
 const totalProdukEl = document.getElementById('totalProduk');
 const totalFavoritEl = document.getElementById('totalFavorit');
-const produkForm = document.getElementById('produkForm');
 const btnTambah = document.getElementById('btnTambah');
-const modalTitle = document.getElementById('modalTitle');
-const favoritContainer = document.getElementById('favoritContainer');
+const produkForm = document.getElementById('produkForm');
 const fileInput = document.getElementById('gambarFile');
+const hargaInput = document.getElementById('harga');
+const deskripsiInput = document.getElementById('deskripsi');
+const filterKategori = document.getElementById('filterKategori');
+const paginationEl = document.getElementById('pagination');
+
+const produkModal = new bootstrap.Modal(document.getElementById('produkModal'));
 const hapusModal = new bootstrap.Modal(document.getElementById('hapusModal'));
+
 const hapusNama = document.getElementById('hapusNama');
 const btnKonfirmasiHapus = document.getElementById('btnKonfirmasiHapus');
-let hapusId = null;
-const produkModal = new bootstrap.Modal(
-  document.getElementById('produkModal')
-);
 
-// ================= RENDER TABLE =================
+let hapusId = null;
+let currentPage = 1;
+const perPage = 10;
+
+/* FORMAT RUPIAH */
+function formatRupiah(angka) {
+  return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+/* RENDER TABLE & CARD */
 async function renderTable() {
-  const { data, error } = await supabase.from('produk').select('*');
+  let query = supabase.from('produk').select('*');
+  if (filterKategori.value) query = query.eq('kategori', filterKategori.value);
+  const { data, error } = await query;
   if (error) return console.error(error);
 
-  produkTable.innerHTML = '';
-  totalProdukEl.textContent = data.length;
-  totalFavoritEl.textContent = data.filter(p => p.favorit).length;
+  const totalData = data.length;
+  const totalPages = Math.ceil(totalData / perPage);
+  const start = (currentPage - 1) * perPage;
+  const end = start + perPage;
+  const pagedData = data.slice(start, end);
 
-  data.forEach(p => {
+  // Render Table
+  produkTable.innerHTML = '';
+  pagedData.forEach(p => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><img src="${p.gambar ?? ''}" width="50"></td>
       <td>${p.nama}</td>
       <td>${p.kategori}</td>
-      <td>Rp ${p.harga.toLocaleString()}</td>
+      <td>Rp ${formatRupiah(p.harga)}</td>
+      <td>${p.deskripsi ?? ''}</td>
       <td>${p.favorit ? '⭐' : ''}</td>
       <td>
-        <button class="btn btn-warning btn-sm btn-edit" data-id="${p.id}">
-          Edit
-        </button>
-        <button class="btn btn-danger btn-sm btn-hapus" data-id="${p.id}">
-          Hapus
-        </button>
+        <button class="btn btn-warning btn-sm btn-edit" data-id="${p.id}">Edit</button>
+        <button class="btn btn-danger btn-sm btn-hapus" data-id="${p.id}">Hapus</button>
       </td>
     `;
     produkTable.appendChild(tr);
   });
+
+  // Update Counters
+  totalProdukEl.textContent = totalData;
+  totalFavoritEl.textContent = data.filter(p => p.favorit).length;
+  document.getElementById('totalMakanan').textContent = data.filter(p => p.kategori === 'makanan').length;
+  document.getElementById('totalMinuman').textContent = data.filter(p => p.kategori === 'minuman').length;
+  document.getElementById('totalCemilan').textContent = data.filter(p => p.kategori === 'cemilan').length;
+
+  renderPagination(totalPages);
 }
 
-// ================= RENDER FAVORIT (INDEX) =================
-async function renderFavorit() {
-  if (!favoritContainer) return; // supaya tidak error di halaman lain
+/* PAGINATION */
+function renderPagination(totalPages) {
+  paginationEl.innerHTML = '';
 
-  const { data, error } = await supabase
-    .from('produk')
-    .select('*')
-    .eq('favorit', true);
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = 'Previous';
+  prevBtn.className = 'btn btn-sm btn-secondary';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.addEventListener('click', () => { currentPage--; renderTable(); });
+  paginationEl.appendChild(prevBtn);
 
-  if (error) return console.error(error);
+  const pageInfo = document.createElement('span');
+  pageInfo.className = 'mx-2';
+  pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages}`;
+  paginationEl.appendChild(pageInfo);
 
-  favoritContainer.innerHTML = '';
-
-  if (data.length === 0) {
-    favoritContainer.innerHTML =
-      '<p class="text-muted">Belum ada produk favorit</p>';
-    return;
-  }
-
-  data.forEach(p => {
-    const col = document.createElement('div');
-    col.className = 'col-md-3 mb-3';
-
-    col.innerHTML = `
-      <div class="card h-100 shadow-sm">
-        <img src="${p.gambar ?? ''}" class="card-img-top"
-             style="height:150px; object-fit:cover">
-        <div class="card-body text-center">
-          <h6 class="card-title">${p.nama}</h6>
-          <small class="text-muted">${p.kategori}</small>
-          <div class="fw-bold mt-2">
-            Rp ${p.harga.toLocaleString()}
-          </div>
-        </div>
-      </div>
-    `;
-
-    favoritContainer.appendChild(col);
-  });
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next';
+  nextBtn.className = 'btn btn-sm btn-secondary';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.addEventListener('click', () => { currentPage++; renderTable(); });
+  paginationEl.appendChild(nextBtn);
 }
 
-// ================= EDIT & HAPUS =================
-produkTable.addEventListener('click', async (e) => {
+/* FILTER KATEGORI */
+filterKategori.addEventListener('change', () => { currentPage = 1; renderTable(); });
 
-  // ----- EDIT -----
-  if (e.target.classList.contains('btn-edit')) {
-    const id = e.target.dataset.id;
-
-    const { data, error } = await supabase
-      .from('produk')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) return alert('Gagal ambil data');
-
-    modalTitle.textContent = 'Edit Produk';
-    document.getElementById('produkId').value = data.id;
-    document.getElementById('nama').value = data.nama;
-    document.getElementById('kategori').value = data.kategori;
-    document.getElementById('harga').value = data.harga;
-    document.getElementById('favorit').checked = data.favorit;
-
-    produkModal.show();
-  }
-
-  // ----- HAPUS -----
-  if (e.target.classList.contains('btn-hapus')) {
-  hapusId = e.target.dataset.id;
-
-  const row = e.target.closest('tr');
-  const nama = row.children[1].innerText;
-
-  hapusNama.textContent = nama;
-  hapusModal.show();
-}
+/* TAMBAH PRODUK */
+btnTambah.addEventListener('click', () => {
+  produkForm.reset();
+  document.getElementById('produkId').value = '';
+  document.getElementById('modalTitle').textContent = 'Tambah Produk';
+  produkModal.show();
 });
 
-// ================= TAMBAH / EDIT =================
-produkForm.addEventListener('submit', async (e) => {
+/* EDIT & HAPUS PRODUK */
+produkTable.addEventListener('click', e => {
+  const target = e.target;
+  if (target.classList.contains('btn-edit')) {
+    const id = target.dataset.id;
+    supabase.from('produk').select('*').eq('id', id).single().then(({ data, error }) => {
+      if (error) return console.error(error);
+      document.getElementById('produkId').value = data.id;
+      document.getElementById('nama').value = data.nama;
+      document.getElementById('kategoriUtama').value = data.kategori;
+      document.getElementById('sub_kategori').value = data.sub_kategori || '';
+      document.getElementById('harga').value = formatRupiah(data.harga);
+      document.getElementById('deskripsi').value = data.deskripsi || '';
+      document.getElementById('favorit').checked = data.favorit || false;
+      document.getElementById('modalTitle').textContent = 'Edit Produk';
+      produkModal.show();
+    });
+  }
+
+  if (target.classList.contains('btn-hapus')) {
+    hapusId = target.dataset.id;
+    hapusNama.textContent = target.closest('tr').children[1].innerText;
+    hapusModal.show();
+  }
+});
+
+/* SUBMIT FORM */
+produkForm.addEventListener('submit', async e => {
   e.preventDefault();
-
   const id = document.getElementById('produkId').value;
-  const file = document.getElementById('gambarFile').files[0];
-
+  const file = fileInput.files[0];
   let gambarUrl = null;
 
-  // Upload gambar jika ada
   if (file) {
-    const fileName = Date.now() + '_' + file.name;
-    const { data, error } = await supabase.storage
-      .from('produk_images')
-      .upload(fileName, file);
-
-    if (error) return alert('Upload gambar gagal');
-
-    gambarUrl = supabase.storage
-      .from('produk_images')
-      .getPublicUrl(data.path).data.publicUrl;
+    const fileName = `produk/${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage.from('produk-images').upload(fileName, file);
+    if (error) return console.error(error);
+    gambarUrl = supabase.storage.from('produk-images').getPublicUrl(data.path).data.publicUrl;
   }
 
   const produkData = {
     nama: document.getElementById('nama').value,
-    kategori: document.getElementById('kategori').value,
-    harga: parseInt(document.getElementById('harga').value),
+    kategori: document.getElementById('kategoriUtama').value,
+    sub_kategori: document.getElementById('sub_kategori').value || null,
+    harga: parseInt(document.getElementById('harga').value.replace(/\./g, '')),
+    deskripsi: document.getElementById('deskripsi').value || null,
     favorit: document.getElementById('favorit').checked
   };
+  if (gambarUrl) produkData.gambar = gambarUrl;
 
-  if (gambarUrl) {
-    produkData.gambar = gambarUrl;
-  }
+  const { error } = id
+    ? await supabase.from('produk').update(produkData).eq('id', id)
+    : await supabase.from('produk').insert([produkData]);
+  if (error) return console.error(error);
 
-  if (id) {
-    await supabase.from('produk').update(produkData).eq('id', id);
-  } else {
-    await supabase.from('produk').insert([produkData]);
-  }
-
-  produkForm.reset();
   produkModal.hide();
   renderTable();
 });
 
-// ================= TOMBOL TAMBAH =================
-btnTambah.addEventListener('click', () => {
-  modalTitle.textContent = 'Tambah Produk';
-  produkForm.reset();
-  document.getElementById('produkId').value = '';
-  produkModal.show();
-});
-// ================= KONFIRMASI HAPUS (INI JAWABANNYA) =================
+/* KONFIRMASI HAPUS */
 btnKonfirmasiHapus.addEventListener('click', async () => {
-  if (!hapusId) return;
-
   await supabase.from('produk').delete().eq('id', hapusId);
   hapusModal.hide();
-  hapusId = null;
   renderTable();
 });
 
-// ================= VALIDASI FILE GAMBAR =================
-fileInput.addEventListener('change', () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-
-  const allowedTypes = ['image/jpeg', 'image/png'];
-
-  if (!allowedTypes.includes(file.type)) {
-    alert('Hanya file JPG dan PNG yang diperbolehkan!');
-    fileInput.value = '';
-  }
+/* AUTO FORMAT HARGA */
+hargaInput.addEventListener('input', e => {
+  let value = e.target.value.replace(/\./g, '');
+  if (!isNaN(value) && value) e.target.value = formatRupiah(value);
+  else e.target.value = '';
 });
 
-
-// ================= LOAD AWAL =================
+/* INIT */
 renderTable();
-renderFavorit();
