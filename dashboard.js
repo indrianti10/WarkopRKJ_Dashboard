@@ -5,9 +5,9 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlubWVjcG53dXlscGh0b3FlcWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4MTE0OTQsImV4cCI6MjA4MjM4NzQ5NH0.GEQt2gJGi1o7Dr7Se8jKfPvBMjAkazJcgTum3ZLMQNU'
 );
 
-/* =========================
+/* =====================
    ELEMENT
-========================= */
+===================== */
 const produkTable = document.getElementById('produkTable');
 const produkForm = document.getElementById('produkForm');
 const btnTambah = document.getElementById('btnTambah');
@@ -16,53 +16,104 @@ const hargaInput = document.getElementById('harga');
 const filterKategori = document.getElementById('filterKategori');
 const paginationEl = document.getElementById('pagination');
 
+const kategoriUtama = document.getElementById('kategoriUtama');
+const subKategoriWrapper = document.getElementById('subKategoriWrapper');
+const subKategori = document.getElementById('sub_kategori');
+
+const gambarInfo = document.getElementById('gambarInfo');
+const namaFileGambar = document.getElementById('namaFileGambar');
+const previewGambar = document.getElementById('previewGambar');
+
 const produkModal = new bootstrap.Modal(document.getElementById('produkModal'));
 const hapusModal = new bootstrap.Modal(document.getElementById('hapusModal'));
 
-const totalProdukEl = document.getElementById('totalProduk');
-const totalFavoritEl = document.getElementById('totalFavorit');
 const hapusNama = document.getElementById('hapusNama');
 const btnKonfirmasiHapus = document.getElementById('btnKonfirmasiHapus');
+
+const produkId = document.getElementById('produkId');
+const gambarLama = document.getElementById('gambarLama');
 
 let hapusId = null;
 let currentPage = 1;
 const perPage = 10;
 
-/* =========================
-   FORMAT HARGA
-========================= */
-function formatRibuan(angka) {
-  return angka.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+/* =====================
+   UTIL
+===================== */
+function formatRibuan(val) {
+  return val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-/* =========================
-   RENDER TABLE
-========================= */
+/* =====================
+   SUB KATEGORI
+===================== */
+const subKategoriMinuman = [
+  { value: 'coffee', label: 'Coffee' },
+  { value: 'non coffee', label: 'Non Coffee' },
+  { value: 'tea', label: 'Tea' }
+];
+
+kategoriUtama.addEventListener('change', () => {
+  subKategori.innerHTML = '<option value="">-- Pilih Sub Kategori --</option>';
+
+  if (kategoriUtama.value === 'minuman') {
+    subKategoriWrapper.style.display = 'block';
+    subKategori.required = true;
+
+    subKategoriMinuman.forEach(item => {
+      const opt = document.createElement('option');
+      opt.value = item.value;
+      opt.textContent = item.label;
+      subKategori.appendChild(opt);
+    });
+  } else {
+    subKategoriWrapper.style.display = 'none';
+    subKategori.required = false;
+    subKategori.value = '';
+  }
+});
+
+/* =====================
+   CARD
+===================== */
+async function renderCards() {
+  const { data } = await supabase.from('produk').select('kategori,favorit');
+
+  document.getElementById('totalProduk').textContent = data.length;
+  document.getElementById('totalFavorit').textContent = data.filter(p => p.favorit).length;
+  document.getElementById('totalMakanan').textContent = data.filter(p => p.kategori === 'makanan').length;
+  document.getElementById('totalMinuman').textContent = data.filter(p => p.kategori === 'minuman').length;
+  document.getElementById('totalCemilan').textContent = data.filter(p => p.kategori === 'cemilan').length;
+}
+
+/* =====================
+   TABLE
+===================== */
 async function renderTable() {
-  let query = supabase.from('produk').select('*');
+  let query = supabase
+    .from('produk')
+    .select('*')
+    .order('id', { ascending: false });
 
   if (filterKategori.value) {
     query = query.eq('kategori', filterKategori.value);
   }
 
-  const { data, error } = await query;
-  if (error) return console.error(error);
+  const { data } = await query;
 
-  const totalData = data.length;
-  const totalPages = Math.ceil(totalData / perPage);
+  const totalPages = Math.ceil(data.length / perPage);
   const start = (currentPage - 1) * perPage;
-  const pagedData = data.slice(start, start + perPage);
+  const pageData = data.slice(start, start + perPage);
 
   produkTable.innerHTML = '';
-  pagedData.forEach(p => {
+
+  pageData.forEach(p => {
     produkTable.innerHTML += `
       <tr>
-        <td>
-          ${p.gambar ? `<img src="${p.gambar}" width="50">` : '-'}
-        </td>
+        <td>${p.gambar ? `<img src="${p.gambar}" width="50">` : '-'}</td>
         <td>${p.nama}</td>
-        <td>${p.kategori}</td>
-        <td>${p.harga ?? ''}</td>
+        <td>${p.kategori === 'minuman' && p.sub_kategori? `${p.kategori} - ${p.sub_kategori}`: p.kategori}</td>
+        <td>Rp ${formatRibuan(String(p.harga))}</td>
         <td>${p.deskripsi ?? ''}</td>
         <td>${p.favorit ? '⭐' : ''}</td>
         <td>
@@ -73,167 +124,152 @@ async function renderTable() {
     `;
   });
 
-  totalProdukEl.textContent = totalData;
-  totalFavoritEl.textContent = data.filter(p => p.favorit).length;
-  document.getElementById('totalMakanan').textContent = data.filter(p => p.kategori === 'makanan').length;
-  document.getElementById('totalMinuman').textContent = data.filter(p => p.kategori === 'minuman').length;
-  document.getElementById('totalCemilan').textContent = data.filter(p => p.kategori === 'cemilan').length;
-
   renderPagination(totalPages);
 }
 
-/* =========================
+/* =====================
    PAGINATION
-========================= */
+===================== */
 function renderPagination(totalPages) {
   paginationEl.innerHTML = `
-    <button class="btn btn-sm btn-secondary" ${currentPage === 1 ? 'disabled' : ''} id="prevPage">Prev</button>
-    <span class="mx-2">${currentPage} / ${totalPages}</span>
-    <button class="btn btn-sm btn-secondary" ${currentPage === totalPages ? 'disabled' : ''} id="nextPage">Next</button>
+    <button ${currentPage === 1 ? 'disabled' : ''} id="prev">Prev</button>
+    <span>${currentPage} / ${totalPages}</span>
+    <button ${currentPage === totalPages ? 'disabled' : ''} id="next">Next</button>
   `;
 
-  document.getElementById('prevPage')?.addEventListener('click', () => {
+  document.getElementById('prev').onclick = () => {
     currentPage--;
     renderTable();
-  });
+  };
 
-  document.getElementById('nextPage')?.addEventListener('click', () => {
+  document.getElementById('next').onclick = () => {
     currentPage++;
     renderTable();
-  });
+  };
 }
 
-/* =========================
-   TAMBAH PRODUK
-========================= */
+/* =====================
+   FILTER
+===================== */
+filterKategori.addEventListener('change', () => {
+  currentPage = 1;
+  renderTable();
+});
+
+/* =====================
+   TAMBAH (FIX UTAMA)
+===================== */
 btnTambah.addEventListener('click', () => {
   produkForm.reset();
-  fileInput.value = '';
-  document.getElementById('gambarLama').value = '';
-  gambarInfo.style.display = 'none';
+  produkId.value = '';
+  gambarLama.value = '';
 
-  document.getElementById('modalTitle').textContent = 'Tambah Produk';
+  gambarInfo.style.display = 'none';
+  previewGambar.src = '';
+  namaFileGambar.textContent = '';
+
+  subKategoriWrapper.style.display = 'none';
+  subKategori.required = false;
+
   produkModal.show();
 });
 
-
-/* =========================
+/* =====================
    EDIT & HAPUS
-========================= */
+===================== */
 produkTable.addEventListener('click', async e => {
-  if (e.target.classList.contains('btn-edit')) {
-    const id = e.target.dataset.id;
 
-    const { data, error } = await supabase
+  if (e.target.classList.contains('btn-edit')) {
+    const { data } = await supabase
       .from('produk')
       .select('*')
-      .eq('id', id)
+      .eq('id', e.target.dataset.id)
       .single();
 
-    if (error) return console.error(error);
+    produkId.value = data.id;
+    nama.value = data.nama;
+    kategoriUtama.value = data.kategori;
+    kategoriUtama.dispatchEvent(new Event('change'));
+    subKategori.value = data.sub_kategori ?? '';
+    harga.value = formatRibuan(String(data.harga));
+    deskripsi.value = data.deskripsi ?? '';
+    favorit.checked = data.favorit;
+    gambarLama.value = data.gambar ?? '';
 
-    document.getElementById('produkId').value = data.id;
-    document.getElementById('nama').value = data.nama;
-    document.getElementById('kategoriUtama').value = data.kategori;
-    document.getElementById('sub_kategori').value = data.sub_kategori ?? '';
-    document.getElementById('harga').value = data.harga ?? '';
-    document.getElementById('deskripsi').value = data.deskripsi ?? '';
-    document.getElementById('favorit').checked = data.favorit ?? false;
-
-    // 🔐 simpan url gambar lama
-    document.getElementById('gambarLama').value = data.gambar ?? '';
-
-    // 🔥 WAJIB kosongkan input file
-    fileInput.value = '';
-
-    // =====================
-    // TAMPILKAN INFO GAMBAR
-    // =====================
     if (data.gambar) {
-      const namaFile = data.gambar.split('/').pop();
-
-      namaFileGambar.textContent = namaFile;
       previewGambar.src = data.gambar;
+      namaFileGambar.textContent = data.gambar.split('/').pop();
       gambarInfo.style.display = 'block';
-    } else {
-      gambarInfo.style.display = 'none';
     }
 
-    document.getElementById('modalTitle').textContent = 'Edit Produk';
     produkModal.show();
   }
 
   if (e.target.classList.contains('btn-hapus')) {
     hapusId = e.target.dataset.id;
-    hapusNama.textContent =
-      e.target.closest('tr').children[1].innerText;
+    hapusNama.textContent = e.target.closest('tr').children[1].innerText;
     hapusModal.show();
   }
 });
 
-
-/* =========================
-   SUBMIT FORM (AMAN GAMBAR)
-========================= */
+/* =====================
+   SUBMIT
+===================== */
 produkForm.addEventListener('submit', async e => {
   e.preventDefault();
 
-  const id = document.getElementById('produkId').value;
-  const file = fileInput.files[0];
+  let gambar = gambarLama.value || null;
 
-  let gambarUrl = document.getElementById('gambarLama').value || null;
-
-  if (file) {
-    const fileName = `produk/${Date.now()}-${file.name}`;
-    const { data, error } = await supabase
-      .storage
-      .from('produk-images')
-      .upload(fileName, file, { upsert: false });
-
-    if (error) return alert('Upload gagal');
-
-    gambarUrl = supabase
-      .storage
-      .from('produk-images')
-      .getPublicUrl(data.path).data.publicUrl;
+  if (fileInput.files[0]) {
+    const file = fileInput.files[0];
+    const name = `${Date.now()}-${file.name}`;
+    await supabase.storage.from('produk-images').upload(name, file);
+    gambar = supabase.storage.from('produk-images').getPublicUrl(name).data.publicUrl;
   }
 
-  const produkData = {
-    nama: document.getElementById('nama').value,
-    kategori: document.getElementById('kategoriUtama').value,
-    sub_kategori: document.getElementById('sub_kategori').value || null,
-    harga: document.getElementById('harga').value,
-    deskripsi: document.getElementById('deskripsi').value || null,
-    favorit: document.getElementById('favorit').checked,
-    gambar: gambarUrl
+  const payload = {
+    nama: nama.value,
+    kategori: kategoriUtama.value,
+    sub_kategori: subKategori.value || null,
+    harga: harga.value.replace(/\./g, ''),
+    deskripsi: deskripsi.value,
+    favorit: favorit.checked,
+    gambar
   };
 
-  id
-    ? await supabase.from('produk').update(produkData).eq('id', id)
-    : await supabase.from('produk').insert([produkData]);
+  if (produkId.value) {
+    await supabase.from('produk').update(payload).eq('id', produkId.value);
+  } else {
+    await supabase.from('produk').insert([payload]);
+  }
 
   produkModal.hide();
+  produkId.value = '';
+  currentPage = 1;
+  renderCards();
   renderTable();
 });
 
-/* =========================
-   HAPUS
-========================= */
+/* =====================
+   KONFIRMASI HAPUS
+===================== */
 btnKonfirmasiHapus.addEventListener('click', async () => {
   await supabase.from('produk').delete().eq('id', hapusId);
   hapusModal.hide();
+  currentPage = 1;
+  renderCards();
   renderTable();
 });
 
-/* =========================
+/* =====================
    FORMAT HARGA
-========================= */
+===================== */
 hargaInput.addEventListener('input', () => {
-  let value = hargaInput.value.replace(/\D/g, '');
-  hargaInput.value = formatRibuan(value);
+  hargaInput.value = formatRibuan(hargaInput.value.replace(/\D/g, ''));
 });
 
-/* =========================
+/* =====================
    INIT
-========================= */
+===================== */
+renderCards();
 renderTable();
