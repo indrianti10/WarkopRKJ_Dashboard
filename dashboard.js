@@ -83,6 +83,7 @@ async function renderCards() {
   document.getElementById('totalFavorit').textContent = data.filter(p => p.favorit).length;
   document.getElementById('totalMakanan').textContent = data.filter(p => p.kategori === 'makanan').length;
   document.getElementById('totalMinuman').textContent = data.filter(p => p.kategori === 'minuman').length;
+  document.getElementById('totalCemilan').textContent = data.filter(p => p.kategori === 'mie').length;
   document.getElementById('totalCemilan').textContent = data.filter(p => p.kategori === 'cemilan').length;
 }
 
